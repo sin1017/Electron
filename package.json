@@ -2,15 +2,23 @@
   "name": "my-electron-app",
   "version": "1.0.0",
   "main": "main.js",
-  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "description": "",
   "devDependencies": {
-    "electron": "^36.0.0"
+    "electron": "^36.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.example.clipboard-monitor",
+    "productName": "剪贴板监听器",
+    "mac": {
+      "category": "public.app-category.utilities"
+    }
   }
 }
