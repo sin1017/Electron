@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain, Menu, MenuItem } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -17,16 +17,40 @@ const createWindow = () => {
   })
 
   win.loadFile('index.html')
-  // win.webContents.openDevTools();
+  win.webContents.openDevTools();
 }
-
-app.whenReady().then(() => {
-  createWindow()
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
-})
+const menu = new Menu();
+menu.append(new MenuItem({
+  label: 'Electron',
+  submenu: [{
+    role: 'help',
+    accelerator: process.platform === 'darwin' ? 'Alt+Cmd+I' : 'Alt+Shift+I',
+    click: ()=> { console.log('Electron roks!')}
+  }]
+}))
+Menu.setApplicationMenu(menu)
+app.whenReady().then(createWindow)
 
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') app.quit()
+  if (process.platform !== 'darwin') {
+    app.quit()
+  }
 })
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow()
+  }
+})
+
+// app.whenReady().then(() => {
+//   ipcMain.handle('ping', () => 'pong')
+//   createWindow()
+//   app.on('activate', () => {
+//     if (BrowserWindow.getAllWindows().length === 0) createWindow()
+//   })
+// })
+
+// app.on('window-all-closed', () => {
+//   if (process.platform !== 'darwin') app.quit()
+// })
