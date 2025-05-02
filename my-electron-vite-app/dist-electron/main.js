@@ -2,6 +2,7 @@ import { app, BrowserWindow } from "electron";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
 import path from "node:path";
+import fs from "fs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 process.env.APP_ROOT = path.join(__dirname, "..");
 const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
@@ -9,7 +10,7 @@ const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
 const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
 process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
 let win;
-function createWindow() {
+function createWindow(hasHammerspoon) {
   win = new BrowserWindow({
     width: 1200,
     height: 600,
@@ -18,9 +19,11 @@ function createWindow() {
       preload: path.join(__dirname, "preload.mjs")
     }
   });
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", `現在時間：${(/* @__PURE__ */ new Date()).toLocaleString()}`);
-  });
+  if (hasHammerspoon) {
+    win.webContents.on("did-finish-load", () => {
+      win == null ? void 0 : win.webContents.send(`hasHammerspoon`, true);
+    });
+  }
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
@@ -39,7 +42,12 @@ app.on("activate", () => {
     createWindow();
   }
 });
-app.whenReady().then(createWindow);
+app.whenReady().then(
+  () => {
+    const hasHammerspoon = fs.existsSync("/Applications/Hammerspoon.app");
+    createWindow(hasHammerspoon);
+  }
+);
 export {
   MAIN_DIST,
   RENDERER_DIST,
