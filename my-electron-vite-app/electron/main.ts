@@ -3,7 +3,10 @@ import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import path from 'node:path'
 import fs from 'fs'
-
+import os from 'os';
+import { exec } from 'child_process'
+import { execSync } from "node:child_process";
+import http from 'http'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -40,12 +43,42 @@ function createWindow(hasHammerspoon?: boolean) {
   }
   win.webContents.openDevTools();
 }
+function writeLuaScript() {
+  const src = path.join(__dirname, 'hammerspoon', 'init.lua');
+  const dest = path.join(os.homedir(), '.hammerspoon', 'init.lua');
+  fs.copyFileSync(src, dest);
+}
+function launchHammerspoon() {
+  const isRunning = execSync('pgrep -x Hammerspoon || echo ""').toString().trim();
+  if (!isRunning) {
+    exec('open -a Hammerspoon');
+  }
+}
+
+function startLuaServer() {
+  const server = http.createServer((req, res) => {
+    if (req.url === '/open' && req.method === 'POST') {
+      createWindow();
+      res.end('ok')
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  })
+
+  server.listen(3030, () => {
+    console.log("listening for lua at http://localhost:3030")
+  })
+}
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
     win = null
   }
+})
+app.on('quit', () => {
+  exec('killall Hammerspoon')
 })
 
 app.on('activate', () => {
@@ -55,8 +88,16 @@ app.on('activate', () => {
 })
 
 app.whenReady().then(
-  () => {
-    const hasHammerspoon = fs.existsSync('/Applications/Hammerspoon.app');
-    createWindow(hasHammerspoon)
+  async () => {
+    // 檢查是否有安裝
+    const hasHammerspoon = fs.existsSync("/Applications/Hammerspoon.app");
+    if (hasHammerspoon) {
+      await writeLuaScript();
+      await launchHammerspoon();
+      startLuaServer();
+    } else {
+      // 開啟安裝頁面
+      createWindow(false);
+    }
   }
 )

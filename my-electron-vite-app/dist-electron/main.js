@@ -1,55 +1,59 @@
-import { app, BrowserWindow } from "electron";
-import { fileURLToPath } from "node:url";
-import process from "node:process";
-import path from "node:path";
-import fs from "fs";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-let win;
-function createWindow(hasHammerspoon) {
-  win = new BrowserWindow({
+import { app as i, BrowserWindow as p } from "electron";
+import { fileURLToPath as h } from "node:url";
+import e from "node:process";
+import n from "node:path";
+import c from "fs";
+import u from "os";
+import { exec as d } from "child_process";
+import { execSync as R } from "node:child_process";
+import w from "http";
+const m = n.dirname(h(import.meta.url));
+e.env.APP_ROOT = n.join(m, "..");
+const a = e.env.VITE_DEV_SERVER_URL, A = n.join(e.env.APP_ROOT, "dist-electron"), f = n.join(e.env.APP_ROOT, "dist");
+e.env.VITE_PUBLIC = a ? n.join(e.env.APP_ROOT, "public") : f;
+let o;
+function l(t) {
+  o = new p({
     width: 1200,
     height: 600,
     webPreferences: {
-      contextIsolation: true,
-      preload: path.join(__dirname, "preload.mjs")
+      contextIsolation: !0,
+      preload: n.join(m, "preload.mjs")
     }
-  });
-  if (hasHammerspoon) {
-    win.webContents.on("did-finish-load", () => {
-      win == null ? void 0 : win.webContents.send(`hasHammerspoon`, true);
-    });
-  }
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
-  win.webContents.openDevTools();
+  }), t && o.webContents.on("did-finish-load", () => {
+    o == null || o.webContents.send("hasHammerspoon", !0);
+  }), a ? o.loadURL(a) : o.loadFile(n.join(f, "index.html")), o.webContents.openDevTools();
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+function _() {
+  const t = n.join(m, "hammerspoon", "init.lua"), r = n.join(u.homedir(), ".hammerspoon", "init.lua");
+  c.copyFileSync(t, r);
+}
+function v() {
+  R('pgrep -x Hammerspoon || echo ""').toString().trim() || d("open -a Hammerspoon");
+}
+function E() {
+  w.createServer((r, s) => {
+    r.url === "/open" && r.method === "POST" ? (l(), s.end("ok")) : (s.statusCode = 404, s.end());
+  }).listen(3030, () => {
+    console.log("listening for lua at http://localhost:3030");
+  });
+}
+i.on("window-all-closed", () => {
+  e.platform !== "darwin" && (i.quit(), o = null);
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+i.on("quit", () => {
+  d("killall Hammerspoon");
 });
-app.whenReady().then(
-  () => {
-    const hasHammerspoon = fs.existsSync("/Applications/Hammerspoon.app");
-    createWindow(hasHammerspoon);
+i.on("activate", () => {
+  p.getAllWindows().length === 0 && l();
+});
+i.whenReady().then(
+  async () => {
+    c.existsSync("/Applications/Hammerspoon.app") ? (await _(), await v(), E()) : l(!1);
   }
 );
 export {
-  MAIN_DIST,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  A as MAIN_DIST,
+  f as RENDERER_DIST,
+  a as VITE_DEV_SERVER_URL
 };
