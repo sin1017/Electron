@@ -16,7 +16,6 @@ export default defineConfig({
         input: path.join(__dirname, 'electron/preload.ts'),
       },
       renderer: process.env.NODE_ENV === 'test'
-        // https://github.com/electron-vite/vite-plugin-electron-renderer/issues/78#issuecomment-2053600808
         ? undefined
         : {},
     }),
@@ -28,7 +27,6 @@ export default defineConfig({
         const to = path.resolve(__dirname, 'dist-electron/hammerspoon/init.lua');
         fs.mkdirSync(path.dirname(to), { recursive: true });
         fs.copyFileSync(from, to);
-        console.log("拷貝完")
       }
     }
   ],

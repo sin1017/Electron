@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, clipboard } from 'electron'
 import { fileURLToPath } from 'node:url'
 import process from 'node:process'
 import path from 'node:path'
@@ -31,8 +31,10 @@ function createWindow(hasHammerspoon?: boolean) {
   })
 
   if (hasHammerspoon) {
+    const clipboardText = getClipboard();
     win.webContents.on('did-finish-load', () => {
       win?.webContents.send(`hasHammerspoon`, true)
+      win?.webContents.send('clipboardText', clipboardText)
     })
   }
 
@@ -58,7 +60,15 @@ function launchHammerspoon() {
 function startLuaServer() {
   const server = http.createServer((req, res) => {
     if (req.url === '/open' && req.method === 'POST') {
-      createWindow();
+      if (win && !win.isDestroyed()) {
+        const clipboardText = getClipboard();
+        win.webContents.on('did-finish-load', () => {
+          win?.webContents.send(clipboardText)
+        })
+        win.focus()
+      } else {
+        createWindow(true);
+      }
       res.end('ok')
     } else {
       res.statusCode = 404;
@@ -71,6 +81,10 @@ function startLuaServer() {
   })
 }
 
+function getClipboard(): string {
+  return clipboard.readText()
+}
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
@@ -81,16 +95,12 @@ app.on('quit', () => {
   exec('killall Hammerspoon')
 })
 
-app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow()
-  }
-})
 
 app.whenReady().then(
   async () => {
     // 檢查是否有安裝
     const hasHammerspoon = fs.existsSync("/Applications/Hammerspoon.app");
+
     if (hasHammerspoon) {
       await writeLuaScript();
       await launchHammerspoon();

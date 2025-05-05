@@ -1,59 +1,101 @@
-import { app as i, BrowserWindow as p } from "electron";
-import { fileURLToPath as h } from "node:url";
-import e from "node:process";
-import n from "node:path";
-import c from "fs";
-import u from "os";
-import { exec as d } from "child_process";
-import { execSync as R } from "node:child_process";
-import w from "http";
-const m = n.dirname(h(import.meta.url));
-e.env.APP_ROOT = n.join(m, "..");
-const a = e.env.VITE_DEV_SERVER_URL, A = n.join(e.env.APP_ROOT, "dist-electron"), f = n.join(e.env.APP_ROOT, "dist");
-e.env.VITE_PUBLIC = a ? n.join(e.env.APP_ROOT, "public") : f;
-let o;
-function l(t) {
-  o = new p({
+import { app, BrowserWindow, clipboard } from "electron";
+import { fileURLToPath } from "node:url";
+import process from "node:process";
+import path from "node:path";
+import fs from "fs";
+import os from "os";
+import { exec } from "child_process";
+import { execSync } from "node:child_process";
+import http from "http";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+process.env.APP_ROOT = path.join(__dirname, "..");
+const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
+const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
+const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
+let win;
+function createWindow(hasHammerspoon) {
+  win = new BrowserWindow({
     width: 1200,
     height: 600,
     webPreferences: {
-      contextIsolation: !0,
-      preload: n.join(m, "preload.mjs")
+      contextIsolation: true,
+      preload: path.join(__dirname, "preload.mjs")
     }
-  }), t && o.webContents.on("did-finish-load", () => {
-    o == null || o.webContents.send("hasHammerspoon", !0);
-  }), a ? o.loadURL(a) : o.loadFile(n.join(f, "index.html")), o.webContents.openDevTools();
+  });
+  if (hasHammerspoon) {
+    const clipboardText = getClipboard();
+    win.webContents.on("did-finish-load", () => {
+      win == null ? void 0 : win.webContents.send(`hasHammerspoon`, true);
+      win == null ? void 0 : win.webContents.send("clipboardText", clipboardText);
+    });
+  }
+  if (VITE_DEV_SERVER_URL) {
+    win.loadURL(VITE_DEV_SERVER_URL);
+  } else {
+    win.loadFile(path.join(RENDERER_DIST, "index.html"));
+  }
+  win.webContents.openDevTools();
 }
-function _() {
-  const t = n.join(m, "hammerspoon", "init.lua"), r = n.join(u.homedir(), ".hammerspoon", "init.lua");
-  c.copyFileSync(t, r);
+function writeLuaScript() {
+  const src = path.join(__dirname, "hammerspoon", "init.lua");
+  const dest = path.join(os.homedir(), ".hammerspoon", "init.lua");
+  fs.copyFileSync(src, dest);
 }
-function v() {
-  R('pgrep -x Hammerspoon || echo ""').toString().trim() || d("open -a Hammerspoon");
+function launchHammerspoon() {
+  const isRunning = execSync('pgrep -x Hammerspoon || echo ""').toString().trim();
+  if (!isRunning) {
+    exec("open -a Hammerspoon");
+  }
 }
-function E() {
-  w.createServer((r, s) => {
-    r.url === "/open" && r.method === "POST" ? (l(), s.end("ok")) : (s.statusCode = 404, s.end());
-  }).listen(3030, () => {
+function startLuaServer() {
+  const server = http.createServer((req, res) => {
+    if (req.url === "/open" && req.method === "POST") {
+      if (win && !win.isDestroyed()) {
+        const clipboardText = getClipboard();
+        win.webContents.on("did-finish-load", () => {
+          win == null ? void 0 : win.webContents.send(clipboardText);
+        });
+        win.focus();
+      } else {
+        createWindow(true);
+      }
+      res.end("ok");
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  });
+  server.listen(3030, () => {
     console.log("listening for lua at http://localhost:3030");
   });
 }
-i.on("window-all-closed", () => {
-  e.platform !== "darwin" && (i.quit(), o = null);
+function getClipboard() {
+  return clipboard.readText();
+}
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+    win = null;
+  }
 });
-i.on("quit", () => {
-  d("killall Hammerspoon");
+app.on("quit", () => {
+  exec("killall Hammerspoon");
 });
-i.on("activate", () => {
-  p.getAllWindows().length === 0 && l();
-});
-i.whenReady().then(
+app.whenReady().then(
   async () => {
-    c.existsSync("/Applications/Hammerspoon.app") ? (await _(), await v(), E()) : l(!1);
+    const hasHammerspoon = fs.existsSync("/Applications/Hammerspoon.app");
+    if (hasHammerspoon) {
+      await writeLuaScript();
+      await launchHammerspoon();
+      startLuaServer();
+    } else {
+      createWindow(false);
+    }
   }
 );
 export {
-  A as MAIN_DIST,
-  f as RENDERER_DIST,
-  a as VITE_DEV_SERVER_URL
+  MAIN_DIST,
+  RENDERER_DIST,
+  VITE_DEV_SERVER_URL
 };
