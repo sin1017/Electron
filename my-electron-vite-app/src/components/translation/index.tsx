@@ -1,11 +1,14 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const Translation = () => {
   const [translationText, setTranslationText] = useState<string>('')
-  window.ipcRenderer.on('clipboardText', (_event, message) => {
-    setTranslationText(message)
-    console.log("ffff", message)
-  })
+
+  useEffect(() => {
+    window.ipcRenderer.on('update-counter', (_event, message) => {
+      setTranslationText(message)
+    })
+  }, [])
+
   return (
     <>
       {/* 翻譯頁面，內容 */}

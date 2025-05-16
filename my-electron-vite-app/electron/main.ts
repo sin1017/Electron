@@ -34,7 +34,7 @@ function createWindow(hasHammerspoon?: boolean) {
     const clipboardText = getClipboard();
     win.webContents.on('did-finish-load', () => {
       win?.webContents.send(`hasHammerspoon`, true)
-      win?.webContents.send('clipboardText', clipboardText)
+      win?.webContents.send('update-counter', clipboardText)
     })
   }
 
@@ -62,9 +62,7 @@ function startLuaServer() {
     if (req.url === '/open' && req.method === 'POST') {
       if (win && !win.isDestroyed()) {
         const clipboardText = getClipboard();
-        win.webContents.on('did-finish-load', () => {
-          win?.webContents.send(clipboardText)
-        })
+        win.webContents.send('update-counter', clipboardText)
         win.focus()
       } else {
         createWindow(true);

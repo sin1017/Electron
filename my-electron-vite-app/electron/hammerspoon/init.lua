@@ -2,7 +2,7 @@ local lastTime = 0
 
 local eventTap = hs.eventtap.new({hs.eventtap.event.types.keyDown}, function(event)
   --[[
-    event:getFlags() hammerspoon 官方文檔提供的用法
+    event:getFlags() hammerspoon 官方文件提供的用法
     https://www.hammerspoon.org/docs/hs.eventtap.event.html#getFlags
   --]] 
   local flags = event:getFlags()

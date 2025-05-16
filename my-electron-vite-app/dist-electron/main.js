@@ -27,7 +27,7 @@ function createWindow(hasHammerspoon) {
     const clipboardText = getClipboard();
     win.webContents.on("did-finish-load", () => {
       win == null ? void 0 : win.webContents.send(`hasHammerspoon`, true);
-      win == null ? void 0 : win.webContents.send("clipboardText", clipboardText);
+      win == null ? void 0 : win.webContents.send("update-counter", clipboardText);
     });
   }
   if (VITE_DEV_SERVER_URL) {
@@ -53,9 +53,7 @@ function startLuaServer() {
     if (req.url === "/open" && req.method === "POST") {
       if (win && !win.isDestroyed()) {
         const clipboardText = getClipboard();
-        win.webContents.on("did-finish-load", () => {
-          win == null ? void 0 : win.webContents.send(clipboardText);
-        });
+        win.webContents.send("update-counter", clipboardText);
         win.focus();
       } else {
         createWindow(true);
