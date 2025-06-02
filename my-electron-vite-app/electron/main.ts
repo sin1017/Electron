@@ -7,6 +7,7 @@ import os from 'os';
 import { exec } from 'child_process'
 import { execSync } from "node:child_process";
 import http from 'http'
+import { translateText } from './gcp-translation'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -99,7 +100,7 @@ app.whenReady().then(
   async () => {
     // 檢查是否有安裝
     const hasHammerspoon = fs.existsSync("/Applications/Hammerspoon.app");
-
+    translateText()
     if (hasHammerspoon) {
       await writeLuaScript();
       await launchHammerspoon();

@@ -1,9 +1,12 @@
 import { TranslationServiceClient } from '@google-cloud/translate';
-import path from 'node:path'
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 // Instantiates a client
 const translationClient = new TranslationServiceClient({
-  keyFilename: path.resolve(__dirname, '../../translation-tool.json')
+  keyFilename: resolve(__dirname, '../../translation-tool.json')
 });
 
 const projectId = 'translation-tool-457910';
