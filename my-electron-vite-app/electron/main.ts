@@ -54,6 +54,7 @@ function launchHammerspoon() {
   const isRunning = execSync('pgrep -x Hammerspoon || echo ""').toString().trim();
   if (!isRunning) {
     exec('open -a Hammerspoon');
+    console.log("12")
   }
 }
 
